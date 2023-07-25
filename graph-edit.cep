@@ -1,0 +1,191 @@
+% import "./graph.cep"
+% import "./graph-helpers.cep"
+
+%% The main edition stage
+editing : stage-desc.
+stage-transition-mode editing interactive.
+
+stage editing = {
+}.
+
+%% The cleaning stage removes `unset-prop`s and `unset-edge`s that have become
+%% unnecessary because the corresponding `prop`s or `edge`s have been automatically set.
+cleaning : stage-desc.
+stage-transition-mode cleaning first.
+
+unset-prop node_id node_id prop_val : pred.
+unset-edge node_id node_id node_id : pred.
+
+%% instantiating Node
+instantiating node_id : stage-desc.
+stage-transition-mode (instantiating _) first.
+
+stage instantiating = {
+}.
+
+%% setting-prop ModelElement Attribute Value Type
+setting-prop node_id node_id prop_val node_id : stage-desc.
+stage-transition-mode (setting-prop _ _ _ _) interactive.
+
+%% setting-edge Source Target Reference ReferenceType
+setting-edge node_id node_id node_id node_id : stage-desc.
+stage-transition-mode (setting-edge _ _ _ _) interactive.
+
+new-instance
+  :  stage editing
+  * $node X 'class
+  * $prop X 'isAbstract (vbool false)
+  *  fresh 'instance
+ -o  stage (instantiating 'instance)
+  *  node 'instance X
+  .
+
+select-prop
+  :  stage editing
+  *  unset-prop X Y V
+  * $edge Y T 'type
+ -o  stage (setting-prop X Y V T)
+  .
+
+set-bool-prop
+  :  stage (setting-prop E A (vbool B) T)
+  % check that T is a dataType, to avoid proposing classes with unset name
+  * $node T 'dataType			% redundant with wfrs, but much cheaper like this, better to put it here (and in other occurrences below) than in select-prop, so that we do not choose the type too early
+  * $prop T 'name (vstring "Boolean")
+  *  is-bool B
+ -o  stage cleaning
+  .
+
+set-string-prop
+  :  stage (setting-prop E A (vstring S) T)
+  * $node T 'dataType
+  * $prop T 'name (vstring "String")
+ -o  stage cleaning
+  .
+
+set-number-prop
+  :  stage (setting-prop E A (vnumber N) T)
+  * $node T 'dataType
+  * $prop T 'name (vstring "Integer")
+ -o  stage cleaning
+  .
+
+%% Goal to define `T`
+select-edge
+  :  stage editing
+  *  unset-edge S T R
+  * $edge R RT 'type
+ -o  stage (setting-edge S T R RT)
+  .
+
+set-edge-without-opposite
+  :  stage (setting-edge S T R RT)
+  *  isKindOf T RT
+  *  not (edge R _ 'opposite)
+ -o  stage cleaning
+  .
+
+set-edge-with-opposite
+  :  stage (setting-edge S T R RT)
+  *  isKindOf T RT
+  * $edge R O 'opposite
+  * $edge O OppositeType 'type
+  *  isKindOf S OppositeType
+ -o  stage cleaning
+  *  edge T S O
+  .
+
+num-nat number nat : bwd.
+num-nat 0 0.
+num-nat 1 1.
+num-nat -1 100.		% upper == -1 means unbounded, which we arbitrarily limit to 1000 here
+
+is-source-type node_id : bwd.
+is-source-type S
+  <- $node R 'reference
+  <- allStructuralFeatures S R
+  .
+
+%% selecting-source Reference
+selecting-source node_id : stage-desc.
+stage-transition-mode (selecting-source _) interactive.
+
+stage selecting-source = {
+}.
+
+select-edge-type
+  :  stage editing
+  * $node R 'reference
+ -o  stage (selecting-source R)
+  .
+
+cancel
+  :  stage (selecting-source _)
+ -o  stage editing
+  .
+
+add-edge
+  :  stage (selecting-source R)
+  * $node X Y
+  *  allStructuralFeatures Y R
+  * $prop R 'upper (vnumber MaxNum)
+  *  num-nat MaxNum MaxNat
+  *  lt (count (edge X _ R)) MaxNat
+ -o  unset-edge X V R
+  *  edge X V R
+  *  stage editing
+  .
+
+create-prop
+  : $stage (instantiating X)
+  * $node X Y
+  *  allStructuralFeatures Y Z
+  * $node Z 'attribute
+  * $prop Z 'lower (vnumber MinNum)
+  %  check that MinNum is ground, otherwise this rule is fireable, and will be fired (non-interactive stage), which will force-set MinNum to 1
+  *  defined MinNum
+  *  num-nat MinNum MinNat
+  *  lt (count (prop X Z _)) MinNat
+ -o  prop X Z V
+  *  unset-prop X Z V
+  .
+
+create-edge
+  : $stage (instantiating X)
+  * $node X Y
+  *  allStructuralFeatures Y Z
+  * $node Z 'reference
+  * $prop Z 'lower (vnumber MinNum)
+  *  defined MinNum
+  *  num-nat MinNum MinNat
+  *  lt (count (edge X _ Z)) MinNat
+ -o  edge X V Z
+  *  unset-edge X V Z
+  .
+
+stage (qui (instantiating _)) -o stage cleaning.
+
+stage (qui (cleaning)) -o stage editing.
+
+
+stage cleaning = {
+
+  clean-unset-prop
+    :  unset-prop Node Attribute Value
+    %  check that Value is ground
+    *  defined Value
+    *  to-string' Value SValue
+    *  trace (fmt "Attribute #{Attribute} of node #{Node} was automatically set to #{SValue}.")
+   -o  ()
+    .
+
+  clean-unset-edge
+    :  unset-edge Source Target Reference
+    %  checking that Target is ground
+    *  defined Target
+    *  trace (fmt "Reference #{Reference} of node #{Source} was automatically set to #{Target}.")
+   -o  ()
+    .
+
+}.
+

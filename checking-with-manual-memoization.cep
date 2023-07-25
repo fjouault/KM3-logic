@@ -1,0 +1,17 @@
+% import "./graph.cep"
+% import "./graph-edit.cep"
+% import "./graph-validity.cep"
+
+error node_id string : pred.
+
+checking-with-manual-memoization : stage-desc.
+stage-transition-mode checking-with-manual-memoization interactive.
+
+stage checking-with-manual-memoization = {
+}.
+
+check-with-manual-memoization : stage editing -o stage checking-with-manual-memoization.
+
+memoize-error : $stage checking-with-manual-memoization * $node X _ * trace (fmt "checking #{X}") * wfr X S -o ?error X S.
+
+done-manual-checking : stage checking-with-manual-memoization -o stage editing.

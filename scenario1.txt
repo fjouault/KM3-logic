@@ -1,0 +1,12 @@
+% Creating a class with an attribute, then instantiating it, and setting the attribute's value for the new instance.
+% This automatically sets the class's isAbstract to false, as well as the attribute's type.
+new-instance (args 'class
+new-instance (args 'attribute
+select-edge (args 'instance_.* V_.* 'owner
+set-edge-with-opposite (args 'instance_.* 'instance_.* 'owner
+select-prop (args 'instance_.* 'lower
+set-number-prop (args 'instance_.* 'lower \(N_[0-9]\+\)
+#define \1 1
+new-instance (args 'instance_.*
+select-prop (args 'instance_.* 'instance_.*
+set-bool-prop (args 'instance_.* 'instance_.* (true)

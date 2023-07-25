@@ -1,0 +1,113 @@
+% import "./graph.cep"
+
+supertypes node_id node_id : bwd.
+supertypes Class X
+  <- $edge Class Y 'supertypes
+  <- defined Y				% making sure we do not set a context meta-variable 'supertypes it if it is unset
+  <- Y == X
+  .
+
+structuralFeatures node_id node_id : bwd.
+structuralFeatures Class X <- $edge Class X 'features.
+
+allStructuralFeatures node_id node_id : bwd.
+allStructuralFeatures Class X <- structuralFeatures Class X.
+allStructuralFeatures Class X
+  <- supertypes Class SuperClass
+  <- allStructuralFeatures SuperClass X
+  .
+
+conformsTo node_id node_id : bwd.
+conformsTo Class1 Class2 <- supertypes Class1 Class2.
+conformsTo Class1 Class2
+  <- supertypes Class1 SuperClass
+  <- conformsTo SuperClass Class2
+  .
+
+isTypeOf node_id node_id : bwd.
+isTypeOf X Type  <- node X Type.
+
+isKindOf node_id node_id : bwd.
+isKindOf X Type <- isTypeOf X Type.
+isKindOf X Type
+  <- isTypeOf X SomeType
+  <- conformsTo SomeType Type
+  .
+
+oppositeOf node_id node_id : bwd.
+oppositeOf X Y
+  <- $node X 'reference
+  <- $node Y 'reference
+  <- $edge X Y 'opposite
+  .
+
+%% parent Child Parent Reference
+parent node_id node_id node_id : bwd.
+parent Child Parent Reference
+  <- edge Parent Child Reference
+  <- prop Reference 'isContainer (vbool true)
+  .
+
+%% ancestor Child Ancestor
+%%
+%% Intended to be used with try (can return several proofs)
+ancestor node_id node_id : bwd.
+ancestor X X.	% or self
+ancestor X Y
+  <- parent X Y _
+  .
+ancestor X Y
+  <- parent X Z _
+  <- ancestor Z Y
+  .
+
+%% List of `node_id`s.
+node_ids : type.
+%% Empty `node_id` list.
+ninil : node_ids.
+%% nicons Head Tail
+%%
+%% Non-empty `node_id` list.
+nicons node_id node_ids : node_ids.
+
+niconcat node_ids node_ids node_ids : bwd.
+niconcat ninil L L.
+niconcat (nicons H T) L (nicons H R)
+  <- niconcat T L R
+  .
+
+nicontains node_id node_ids : bwd.
+nicontains X (nicons X _).
+nicontains X (nicons Y T)
+  <- nicontains X T
+  .
+
+%% value to source string
+to-string' prop_val string : bwd.
+to-string' (vstring S) S'
+  <- S' == fmt "\"#{S}\""
+  .
+%to-string' (vnumber N) (fmt "#{N}").
+to-string' (vnumber -1) "-1".
+to-string' (vnumber 0) "0".
+to-string' (vnumber 1) "1".
+to-string' (vbool true) "true".
+to-string' (vbool false) "false".
+
+%% value to display string
+to-string prop_val string : bwd.
+to-string (vstring S) S.
+to-string (vbool true) "true".
+to-string (vbool false) "false".
+to-string (vnumber -1) "1".
+to-string (vnumber 0) "0".
+to-string (vnumber 1) "1".
+
+is-bool bool : bwd.
+is-bool true.
+is-bool false.
+
+lt nat nat : bwd.
+lt zero (succ N).
+lt (succ M) (succ N) <- lt M N.
+

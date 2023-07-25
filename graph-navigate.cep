@@ -1,0 +1,105 @@
+% import "./graph.cep"
+% import "./graph-helpers.cep"
+% import "./graph-edit.cep"
+
+navigating : stage-desc.
+stage-transition-mode navigating interactive.
+focused-editing : stage-desc.
+stage-transition-mode focused-editing interactive.
+
+
+
+%% focus Current Previous
+focus node_id node_ids : pred.
+
+stage navigating = {
+
+  choose-root
+    :  not (focus _ _)
+    * $node X XType
+    *  not (parent X _ _)
+   -o  focus X ninil
+    .
+
+  drop-focus
+    :  focus X _
+   -o  ()
+    .
+
+  go-back
+    :  focus _ (nicons X Previous)
+   -o  focus X Previous
+    .
+
+  go-up
+    :  focus X Previous
+    *  parent X Y Reference
+   -o  focus Y (nicons X Previous)
+    .
+
+  choose-child
+    :  focus X Previous
+    *  parent Y X Reference
+   -o  focus Y (nicons X Previous)
+    .
+
+  traverse
+    :  focus X Previous
+    * $edge X Y R
+    *  not (parent Y X _)
+   -o  focus Y (nicons X Previous)
+    .
+
+}.
+
+navigate
+  :  stage editing
+ -o  stage navigating
+  .
+
+edit-from-navigating
+  :  stage navigating
+ -o  stage focused-editing
+  .
+
+back-to-unfocused-editing
+  :  stage focused-editing
+ -o  stage editing
+  .
+
+stage (qui focused-editing) -o stage editing.
+
+stage focused-editing = {
+
+  focused-unset-prop
+    : $focus N Previous
+    *  prop N Attribute Value
+    *  defined Value
+   -o  unset-prop N Attribute V
+    *  prop N Attribute V
+    .
+
+  focused-unset-edge-without-opposite
+    : $focus S Previous
+    *  edge S OldTarget Reference
+    *  defined OldTarget
+    *  not (edge Reference _ 'opposite)
+   -o  unset-edge S T Reference
+    *  edge S T Reference
+    .
+
+  focused-unset-edge-with-opposite
+    : $focus OldSource Previous
+    *  edge OldSource OldTarget Reference
+    *  defined OldSource
+    *  defined OldTarget	% should already be defined, because OldSource is defined
+    * $edge Reference Opposite 'opposite
+    *  edge OldTarget OldSource Opposite
+   -o  unset-edge OldSource T Reference
+    *  edge OldSource T Reference
+    *  unset-edge OldTarget S Reference
+    *  edge OldTarget S Reference
+    .
+
+}.
+

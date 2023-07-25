@@ -1,0 +1,147 @@
+% import "./graph.cep"
+% import "./graph-helpers.cep"
+
+wfr node_id string : bwd.
+
+wfr X S
+  <- $node X Y
+  <- not (node Y 'class)
+  <- S == fmt "The type of node #{X} should be a class, but #{Y} is not a class."
+  .
+
+wfr X S
+  <- $node X Y
+  <- $node X Z
+  <- Y <> Z
+  <- S == fmt "Node #{X} is defined twice with different types #{Y} and #{Z}."
+  .
+
+wfr X S
+  <- $edge X Y Z
+  <- not (node Z 'reference)
+  <- S == fmt "The type of edge #{X}->#{Y} should be a reference."
+  .
+
+wfr X S
+  <- $node X 'reference
+  <- $edge X Y 'opposite
+  <- not (edge Y X 'opposite)
+  <- S == fmt "The opposite of reference #{X} is reference #{Y}, but the reverse is not true."
+  .
+
+wfr X S
+  <- $node X 'reference
+  <- $edge X XOwner 'owner
+  <- $edge X Y 'opposite
+  <- not (edge Y XOwner 'type)
+  <- S == fmt "The opposite of reference #{X} is reference #{Y} but the type of the second is not the owner of the first."
+  .
+
+wfr X S
+  <- $edge X Y _
+  <- not (node Y _)
+  <- S == fmt "The target of edge #{X}->#{Y} is not a valid node."
+  .
+
+wfr X S
+  <- $edge X Y _
+  <- not (node X _)
+  <- S == fmt "The source of edge #{X}->#{Y} is not a valid node."
+  .
+
+wfr X S
+  <- $edge X Y Reference
+  <- $edge Reference SourceType 'owner
+  <- not (isKindOf X SourceType)
+  <- S == fmt "The source of edge #{X}->#{Y} does not have a correct type."
+  .
+
+wfr X S
+  <- $edge X Y Reference
+  <- $edge Reference TargetType 'type
+  <- not (isKindOf Y TargetType)
+  <- S == fmt "The target of edge #{X}->#{Y} does not have a correct type."
+  .
+
+wfr X S
+  <- $edge X Y Z
+  <- oppositeOf Z O
+  <- not (edge Y X O)
+  <- S == fmt "Edge #{X}->#{Y} does not have an opposite with appropriate type."
+  .
+
+wfr X S
+  <- $node X Y
+  <- $prop Y 'isAbstract (vbool true)
+  <- S == fmt "#{X} is an instance of abstract type #{Y}, which is forbidden."
+  .
+
+wfr Y S
+  <- $prop Y X _
+  <- isTypeOf Y YType
+  <- not (allStructuralFeatures YType X)
+  <- S == fmt "Attribute #{X} is not valid for #{Y}."
+  .
+
+wfr Y S
+  <- $prop Y X V
+  <- $edge X T 'type
+  <- $node T 'dataType
+  <- $prop T 'name (vstring "Integer")
+  <- V <> (vnumber _)
+  <- S == fmt "Property #{X} of #{Y} should be of type Integer."
+  .
+
+wfr Y S
+  <- $prop Y X V
+  <- $edge X T 'type
+  <- $node T 'dataType
+  <- $prop T 'name (vstring "String")
+  <- V <> (vstring _)
+  <- S == fmt "Property #{X} of #{Y} should be of type String."
+  .
+
+wfr Y S
+  <- $prop Y X V
+  <- $edge X T 'type
+  <- $node T 'dataType
+  <- $prop T 'name (vstring "Boolean")
+  <- V <> (vbool _)
+  <- S == fmt "Property %w of %w should be of type Boolean."
+  .
+
+wfr X S
+  <- isKindOf X 'classifier
+  <- not (edge X _ 'me_package)
+  <- S == fmt "Classifier #{X} should be in a package."
+  .
+
+wfr X S
+  <- isTypeOf X XType
+  <- allStructuralFeatures XType Y
+  <- $node Y 'attribute
+  <- not (prop Y 'lower (vnumber 0))
+  <- not (prop X Y _)
+  <- S == fmt "Element #{X} should have a value for attribute #{Y}."
+  .
+
+wfr X S
+  <- isTypeOf X XType
+  <- allStructuralFeatures XType Y
+  <- $node Y 'reference
+  <- not (prop Y 'lower (vnumber 0))
+  <- not (edge X _ Y)
+  <- S == fmt "Element #{X} should have a value for reference #{Y}."
+  .
+
+wfr X S
+  <- $edge X Y F1
+  <- $edge X Z F2
+  <- F1 <> F2 % was the last premise in KM3.pl
+  <- oppositeOf F1 OF1
+  <- oppositeOf F2 OF2
+  <- $prop OF1 'isContainer (vbool true)
+  <- $prop OF2 'isContainer (vbool true)
+  <- S == fmt "Element #{X} is contained in both #{Y} and #{Z}."
+  .
+

@@ -1,0 +1,13 @@
+node_id : atom_type.
+
+prop_val : type.
+vstring string : prop_val.
+vbool   bool   : prop_val.
+vnumber number : prop_val. 
+
+%% node ModelElement Type
+node node_id node_id : pred.
+%% edge Source Target Reference
+edge node_id node_id node_id : pred.
+%% edge ModelElement Attribute Value
+prop node_id node_id prop_val : pred.
